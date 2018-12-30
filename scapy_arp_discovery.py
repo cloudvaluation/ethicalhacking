@@ -4,6 +4,24 @@ import logging
 import subprocess
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
+import threading
+
+screenlock = threading.Semaphore(value=1)
+
+def scanport(prefix, addr):
+	try:
+		answer = sr1(ARP(pdst= prefix + str(addr)), timeout=1, verbose=0)
+		
+		screenlock.acquire()
+
+		if answer == None:
+			pass
+		else:
+			print("[+] Host " + prefix + str(addr) + " is alive")
+	except:
+		pass
+	finally:
+		screenlock.release()
 
 print("*************** ARP Scanning script ****************")
 
@@ -18,22 +36,9 @@ ip = subprocess.check_output("ifconfig " + interface + " | grep 'inet ' | cut -d
 
 prefix = ip.split('.')[0] + '.' + ip.split('.')[1] + '.' + ip.split('.')[2] + '.'
 
-#print("My machine IP : " + str(ip))
 
 reply_ip = list()
 
 for addr in range(0, 254):
-	#print("Checking machine " + prefix + str(addr))
-	answer = sr1(ARP(pdst = prefix + str(addr)), timeout = 1, verbose = 0)
-	if answer == None:
-		pass
-	else:
-		reply_ip.append(prefix + str(addr))
-
-#print("***************	REPLIES ***************")
-
-for elt in reply_ip:
-	print(elt)
-
-
-
+	t = threading.Thread(target=scanport, args=(prefix, addr))
+	t.start()

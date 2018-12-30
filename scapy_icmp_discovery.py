@@ -4,6 +4,25 @@ import logging
 import subprocess
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
+import threading
+
+screenlock = threading.Semaphore(value=1)
+
+def icmpscan(prefix, addr):
+	try:
+		answer = sr1(IP(dst=prefix + str(addr))/ICMP(),timeout=1, verbose=0)
+		
+		screenlock.acquire()
+
+		if answer == None:
+			pass
+		else:
+			print("[+] Host " + prefix + str(addr) + " is alive")
+
+	except:
+		pass
+	finally:
+		screenlock.release()
 
 if len(sys.argv) != 2:
 	print("Usage scapy_icmp_discovery.py [interface]")
@@ -18,13 +37,17 @@ prefix = ip.split('.')[0] + '.' + ip.split('.')[1] + '.' + ip.split('.')[2] + '.
 
 reply_ip = list()
 
-for addr in range(0,254):
-	answer = sr1(IP(dst=prefix + str(addr)) / ICMP(), timeout=1, verbose=0)
-	if answer == None:
-		pass
-	else:
-		reply_ip.append(prefix + str(addr))
+for addr in range(0, 254):
+	t = threading.Thread(target = icmpscan, args=(prefix, addr))
+	t.start()
 
-for elt in reply_ip:
-	print(elt)
+#for addr in range(0,254):#
+#	answer = sr1(IP(dst=prefix + str(addr)) / ICMP(), timeout=1, verbose=0)
+#	if answer == None:
+#		pass
+#	else:
+#		reply_ip.append(prefix + str(addr))
+#
+#for elt in reply_ip:
+#	print(elt)
 
